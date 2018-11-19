@@ -36,6 +36,8 @@ val_features = np.load(os.path.join(VAL_DIR, FEATURES_FILENAME))
 val_labels = np.load(os.path.join(VAL_DIR, LABELS_FILENAME))
 val_labels = keras.utils.np_utils.to_categorical(val_labels)
 
+#Build LSTM model
+
 # Build softmax model
 classifier_model = Sequential()
 classifier_model.add(Dense(67, activation='softmax',

@@ -35,6 +35,7 @@ def preprocess(im):
     # RGB to BGR
     im = im[:, :, ::-1]
 
+    
     # Resize and scale values to <0, 255>
     im = skimage.transform.resize(im, (224, 224), mode='constant').astype(np.float32)
     im *= 255

@@ -24,6 +24,7 @@ import skimage.io
 from keras.models import Model
 import helper
 from resnet import resnet152
+import matplotlib.pyplot as plt
 
 
 DATA_SUBSETS = [
@@ -43,7 +44,13 @@ resnet_model = resnet152.resnet152_model(WEIGHTS_RESNET)
 feature_layer = 'avg_pool'
 features_model = Model(inputs=resnet_model.input,
                        outputs=resnet_model.get_layer(feature_layer).output)
-
+def saliency_queue(img,size,scale):
+    output=[]
+    h,w = np.shape(img)
+    for i in range(h/size):
+        for j in range(w/size):
+            output.append((np.sum(scale*img[size*i:size*i+size,size*j:size*j+size]),(size*i,size*j)))
+    return sorted(output,key=lambda x:x[0],reverse=True)
 # For each data subset
 for datadir in DATA_SUBSETS:
 
@@ -51,22 +58,38 @@ for datadir in DATA_SUBSETS:
     labels = []
     paths = []
     images_list = glob.glob(datadir + "/*/*.jpg")
-
+    print len(images_list)
     # Process images
-    for i, path in enumerate(images_list[:10]):
+    for i, path in enumerate(images_list):
         try:
+            looks = np.zeros((9,2048))
             # Load image
             im = skimage.io.imread(path)
             im = helper.preprocess(im)
-            if im is None: raise Exception("Could not load image")
-
-            # Run model to get features
-            code = features_model.predict(im).flatten()
+            a = skimage.filters.gaussian(im, sigma=15, multichannel=None)
+            plt.figure()
+            plt.imshow(a[0,:,:,:])
+            plt.show()
+            s_path = "/home/csweeney/images_test/saliency/"+path.split("/")[-1]
+            if im is None or not os.path.isfile(s_path): 
+                print("cant load")
+                continue
+            image = skimage.io.imread(s_path)
+            image = skimage.transform.resize(image,(244,244))
+            size=75
+            imgs = saliency_queue(image,size,scale =1)
+            for i,j in enumerate(imgs[:9]):
+                a[j[1][0]:j[1][0]+size,j[1][1]:j[1][1]+size] = im[j[1][0]:j[1][0]+size,j[1][1]:j[1][1]+size]
+                plt.figure()
+                print np.max(a)
+                plt.imshow(a[0,:,:,:])
+                plt.show()
+                looks[i,:] = features_model.predict(a).flatten()
 
             # Cache result
             label = NAMES_TO_IDS[os.path.basename(os.path.dirname(path))]
             labels.append(label)
-            features.append(code)
+            features.append(looks)
             rel_path = os.path.join(*path.split(os.sep)[-2:]).replace("\\", "/")
             paths.append(rel_path)
 
