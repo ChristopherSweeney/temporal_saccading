@@ -44,6 +44,7 @@ resnet_model = resnet152.resnet152_model(WEIGHTS_RESNET)
 feature_layer = 'avg_pool'
 features_model = Model(inputs=resnet_model.input,
                        outputs=resnet_model.get_layer(feature_layer).output)
+
 def saliency_queue(img,size,scale):
     output=[]
     h,w = np.shape(img)
@@ -60,16 +61,16 @@ for datadir in DATA_SUBSETS:
     images_list = glob.glob(datadir + "/*/*.jpg")
     print len(images_list)
     # Process images
-    for i, path in enumerate(images_list):
+    for index, path in enumerate(images_list):
         try:
             looks = np.zeros((9,2048))
             # Load image
             im = skimage.io.imread(path)
             im = helper.preprocess(im)
-            a = skimage.filters.gaussian(im, sigma=15, multichannel=None)
-            plt.figure()
-            plt.imshow(a[0,:,:,:])
-            plt.show()
+            # im = skimage.transform.resize(im, (224, 224), mode='constant').astype(np.float32)
+            # im = np.expand_dims(im, axis=0)*255
+
+            a = skimage.filters.gaussian(im, sigma=10, multichannel=True)
             s_path = "/home/csweeney/images_test/saliency/"+path.split("/")[-1]
             if im is None or not os.path.isfile(s_path): 
                 print("cant load")
@@ -79,11 +80,7 @@ for datadir in DATA_SUBSETS:
             size=75
             imgs = saliency_queue(image,size,scale =1)
             for i,j in enumerate(imgs[:9]):
-                a[j[1][0]:j[1][0]+size,j[1][1]:j[1][1]+size] = im[j[1][0]:j[1][0]+size,j[1][1]:j[1][1]+size]
-                plt.figure()
-                print np.max(a)
-                plt.imshow(a[0,:,:,:])
-                plt.show()
+                a[j[1][0]:j[1][0]+size,j[1][1]:j[1][1]+size] = im[j[1][0]:j[1][0]+size,j[1][1]:j[1][1]+size]          
                 looks[i,:] = features_model.predict(a).flatten()
 
             # Cache result
@@ -94,8 +91,8 @@ for datadir in DATA_SUBSETS:
             paths.append(rel_path)
 
             # Show progress
-            if i % 100 == 0:
-                print(i, "/", len(images_list))
+            if index % 100 == 0:
+                print(index, "/", len(images_list))
 
         except Exception as e:
             print("Error processing path {}: {}".format(path, e))
