@@ -32,8 +32,8 @@ DATA_SUBSETS = [
     os.path.expanduser("~/ml/data/indoor/val"),
     os.path.expanduser("~/ml/data/indoor/test"),
 ]
-FEATURES_FILENAME = "features-resnet152.npy"
-LABELS_FILENAME = "labels-resnet152.npy"
+FEATURES_FILENAME = "features-resnet152-better-fillup.npy"
+LABELS_FILENAME = "labels-resnet152-better-fillup.npy"
 PATHS_FILENAME = "paths-resnet152.json"
 WEIGHTS_RESNET = os.path.expanduser("~/ml/models/keras/resnet152/resnet152_weights_tf.h5")
 NAMES_TO_IDS = json.load(open("names_to_ids.json"))
@@ -66,21 +66,26 @@ for datadir in DATA_SUBSETS:
             looks = np.zeros((9,2048))
             # Load image
             im = skimage.io.imread(path)
-            im = helper.preprocess(im)
-            # im = skimage.transform.resize(im, (224, 224), mode='constant').astype(np.float32)
-            # im = np.expand_dims(im, axis=0)*255
-
-            a = skimage.filters.gaussian(im, sigma=10, multichannel=True)
+            im = skimage.transform.resize(im, (224, 224), mode='constant').astype(np.float32)
+            # plt.figure()
+            # plt.imshow(im)
+            # plt.show()
+            im = np.expand_dims(im, axis=0)
             s_path = "/home/csweeney/images_test/saliency/"+path.split("/")[-1]
-            if im is None or not os.path.isfile(s_path): 
-                print("cant load")
-                continue
+
             image = skimage.io.imread(s_path)
-            image = skimage.transform.resize(image,(244,244))
+            image = skimage.transform.resize(image,(224,224))
             size=75
             imgs = saliency_queue(image,size,scale =1)
+            a = skimage.filters.gaussian(im[0,:,:,:], sigma=10, multichannel=True)
             for i,j in enumerate(imgs[:9]):
-                a[j[1][0]:j[1][0]+size,j[1][1]:j[1][1]+size] = im[j[1][0]:j[1][0]+size,j[1][1]:j[1][1]+size]          
+                #a = skimage.filters.gaussian(im, sigma=10, multichannel=True)
+                #a = np.zeros((1,224,224,3))
+                a[j[1][0]:j[1][0]+size,j[1][1]:j[1][1]+size,:] = im[0,j[1][0]:j[1][0]+size,j[1][1]:j[1][1]+size,:]
+               # plt.figure()
+                # plt.imshow(a[0,:,:,:])
+                # plt.show()
+                a = helper.preprocess(a)        
                 looks[i,:] = features_model.predict(a).flatten()
 
             # Cache result

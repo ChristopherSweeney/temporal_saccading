@@ -21,8 +21,8 @@ import matplotlib.pyplot as plt
 
 TRAIN_DIR = os.path.expanduser("~/ml/data/indoor/train")
 VAL_DIR = os.path.expanduser("~/ml/data/indoor/val")
-FEATURES_FILENAME = "features-resnet152.npy"
-LABELS_FILENAME = "labels-resnet152.npy"
+FEATURES_FILENAME = "features-resnet152-better-fillup.npy"
+LABELS_FILENAME = "labels-resnet152-better-fillup.npy"
 WEIGHTS_CLASSIFIER = "classifier_weights.h5"
 
 
@@ -39,17 +39,19 @@ val_labels = keras.utils.np_utils.to_categorical(val_labels)
 #Build LSTM model
 histories=[]
 # Build softmax model
-for i in range(1,2): #number of looks
-	train_features = train_features[:,0:i,:]
-	val_features = val_features[:,0:i,:]
+for i in range(1,10): #number of looks
+        train_features1 = train_features[:,i-1,:]
+        val_features1 = val_features[:,i-1,:]
 
 
 	classifier_model = Sequential()
-	print train_features.shape[1:]
-	classifier_model.add(LSTM(2000, input_shape = train_features.shape[1:]))
+       # classifier_model.add(LSTM(2000, input_shape = train_features1.shape[1:]))
+       # classifier_model.add(Dense(1000, activation='softmax',
+        #                           kernel_initializer='TruncatedNormal',
+         #                          bias_initializer='zeros' ))
 	classifier_model.add(Dense(67, activation='softmax',
 	                           kernel_initializer='TruncatedNormal',
-	                           bias_initializer='zeros' )), # input_shape = train_features.shape[1:]
+                                   bias_initializer='zeros',input_shape = train_features1.shape[1:]))
 
 	# Define optimizer and compile
 	opt = SGD(lr=0.1)
@@ -60,17 +62,19 @@ for i in range(1,2): #number of looks
 	checkpointer = ModelCheckpoint(filepath=WEIGHTS_CLASSIFIER, save_best_only=True, verbose=1)
 
 	# Train
-	history = classifier_model.fit(train_features, train_labels,
+	history = classifier_model.fit(train_features1, train_labels,
 	                     epochs=50,
 	                     batch_size=256,
-	                     validation_data=(val_features, val_labels),
+	                     validation_data=(val_features1, val_labels),
 	                     callbacks=[lr_decay, checkpointer])
 	histories.append(history)
 
 for i,history in enumerate(histories):
-	print "validation accuracy for ",i, " looks at the image: ", history.history['val_acc']
-	# summarize history for accuracy
-	plt.plot(history.history['acc'])
+	print "validation accuracy for ",i, " looks at the image: ", history.history['val_acc'][-1]
+	print "training accuracy for ",i, " looks at the image: ", history.history['acc'][-1]
+        # summarize history for accuracy
+	'''
+        plt.plot(history.history['acc'])
 	plt.plot(history.history['val_acc'])
 	plt.title('model accuracy')
 	plt.ylabel('accuracy')
@@ -85,3 +89,4 @@ for i,history in enumerate(histories):
 	plt.xlabel('epoch')
 	plt.legend(['train', 'test'], loc='upper left')
 	plt.show()
+        '''
